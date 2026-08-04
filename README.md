@@ -69,7 +69,7 @@ toolkit's `test.py` and `form_enum.py`:
 | `--usernames` / `--passwords` | always (placeholder wordlist paths) |
 | `--user-field` / `--pass-field` | login form detected |
 | `--csrf-field` / `--csrf-url` | token field detected |
-| `--extra-field` | each static field with a value (excl. user/pass/csrf) |
+| `--extra-field` | each static field with a value (excl. user/pass/csrf), including named submit/button controls that carry a value |
 | `--cookie` | any cookies visible to page scripts |
 
 Note: `document.cookie` does **not** expose `httpOnly` cookies — add those to

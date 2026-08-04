@@ -86,6 +86,29 @@ check('test.py command for a plain GET form omits login/csrf flags', () => {
   assert.ok(!cmd.includes('--csrf-field'), cmd);
 });
 
+check('test.py command includes named submit/button controls with values', () => {
+  const cmd = C.buildTestPyCommand({
+    action: 'http://127.0.0.1:4280/vulnerabilities/brute/index.php',
+    method: 'GET',
+    isLogin: true,
+    loginUserField: 'username',
+    csrfFields: ['user_token'],
+    fields: [
+      { name: 'username', type: 'text', value: '', hidden: false },
+      { name: 'password', type: 'password', value: '', hidden: false },
+      { name: 'user_token', type: 'hidden', value: 'abc123', hidden: true },
+      { name: 'Login', type: 'submit', value: 'Login', hidden: false },
+      { name: 'Go', type: 'submit', value: '', hidden: false },
+      { name: '', type: 'submit', value: 'x', hidden: false },
+      { name: 'upload', type: 'file', value: '', hidden: false },
+    ],
+  }, {});
+  assert.ok(cmd.includes("--extra-field 'Login=Login'"), cmd);
+  assert.ok(!cmd.includes('Go='), cmd);
+  assert.ok(!cmd.includes("--extra-field '=x'"), cmd);
+  assert.ok(!cmd.includes('upload'), cmd);
+});
+
 /* buildFormEnumCommand */
 check('form_enum.py command wires url and json report', () => {
   const cmd = C.buildFormEnumCommand('http://example.com/page.php', {});
