@@ -1,4 +1,4 @@
-# 🔎 PageProbe
+# PageProbe
 
 **An authorized form & endpoint inspector for your browser.** Point it at a page,
 see every form, field, hidden input, link, and query parameter — and copy a
