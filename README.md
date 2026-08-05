@@ -15,8 +15,6 @@ aggregates everything into a single Markdown/HTML report.
 
 ![demo](demo.gif)
 
-_Demo GIF pending — run `vhs demo.tape` locally to generate._
-
 ```
 labctl up → labctl set-level dvwa medium → labctl seed
          → labctl run-brute --target ssh-lab → labctl report
