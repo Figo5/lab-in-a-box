@@ -116,6 +116,28 @@ check('form_enum.py command wires url and json report', () => {
   assert.ok(cmd.includes('--json report.json'), cmd);
 });
 
+check('form_enum.py command adds --cookie when opts.cookies is set', () => {
+  const cmd = C.buildFormEnumCommand('http://example.com/page.php', {
+    cookies: "PHPSESSID=abc; security=low",
+  });
+  assert.ok(cmd.includes("--cookie 'PHPSESSID=abc; security=low'"), cmd);
+  // --cookie must come after --url and before --json, matching buildFormEnumCommand's part order.
+  assert.ok(
+    cmd.indexOf('--url') < cmd.indexOf('--cookie') && cmd.indexOf('--cookie') < cmd.indexOf('--json'),
+    cmd
+  );
+});
+
+check('form_enum.py command omits --cookie when opts.cookies is absent or empty', () => {
+  assert.ok(!C.buildFormEnumCommand('http://example.com/page.php', {}).includes('--cookie'));
+  assert.ok(!C.buildFormEnumCommand('http://example.com/page.php', { cookies: '' }).includes('--cookie'));
+});
+
+check('form_enum.py command shell-quotes an embedded single quote in cookies', () => {
+  const cmd = C.buildFormEnumCommand('http://example.com/page.php', { cookies: "a='b" });
+  assert.ok(cmd.includes("--cookie 'a='\\''b'"), cmd);
+});
+
 /* isLocalHost */
 check('isLocalHost recognizes localhost and private ranges', () => {
   for (const h of ['localhost', '127.0.0.1', '::1', '10.0.0.5', '172.16.0.1', '172.31.9.9', '192.168.1.1', 'dev.local', 'foo.localhost']) {

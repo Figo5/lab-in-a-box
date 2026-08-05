@@ -121,4 +121,22 @@ function collectPageData() {
   };
 }
 
-collectPageData();
+const api = {
+  isCsrfField,
+  formSubmitText,
+  resolveUrl,
+  collectForms,
+  collectLinks,
+  collectQueryParams,
+  collectHosts,
+  collectPageData,
+};
+
+if (typeof window !== 'undefined') {
+  window.PageProbeCollector = api;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = api;
+} else {
+  collectPageData();
+}
