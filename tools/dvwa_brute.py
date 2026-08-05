@@ -8,8 +8,8 @@ Success is detected by the "Welcome to the password protected area" page text.
 A CSRF `user_token` is sniffed from the brute page when present (DVWA high
 level adds one; low/medium do not).
 
-This only ever attacks the host/port it is given — it is NOT wired to the
-user's own DVWA at :4280.
+This only ever attacks the host/port it is given — nothing here is hardcoded
+to a particular DVWA instance.
 
 Output contract (parsed by labctl/brute.py):
   * `[+] <user>:<password>`   for each confirmed login
