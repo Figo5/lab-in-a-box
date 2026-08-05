@@ -1,15 +1,15 @@
-"""Run the existing brute-forcer against a lab target.
+"""Run a brute tool against a lab target.
 
 Two modes:
-  * Real   — if lab.yaml `brute.tool` points at an existing brute-forcer, it is
-             invoked as a subprocess and stdout is parsed into the results dict.
-             The stock integration targets `ssh_brute.py` (host + usernames +
-             passwords), which prints `[+] user:pass` lines and a
-             `[*] attempts=... confirmed=...` summary.
+  * Real   — if lab.yaml `brute.tool` is set (an in-repo tools/ script or any
+             path), it is invoked as a subprocess and stdout is parsed into the
+             results dict. The stock integration targets `tools/ssh_brute.py`
+             (host + usernames + passwords), which prints `[+] user:pass` lines
+             and a `[*] attempts=... confirmed=...` summary.
   * Mock   — otherwise a deterministic stub runs, so the pipeline
-             (up -> seed -> run-brute -> report) works end-to-end before your
-             tool is plugged in. The stub "finds" the seeded account iff its
-             password appears in the wordlist.
+             (up -> seed -> run-brute -> report) works end-to-end with no
+             brute.tool configured. The stub "finds" the seeded account iff
+             its password appears in the wordlist.
 
 Results contract (shared by both modes):
     {
@@ -66,12 +66,9 @@ def run(
 # Real integration
 # --------------------------------------------------------------------------
 # Interpreter resolution order for the brute tool (see also README.md):
-#   1. `brute.python` in lab.yaml        — explicit override wins.
-#   2. <tool dir>/.venv/bin/python       — a sibling venv shipped next to the
-#                                          tool (e.g. ssh_brute.py needs
-#                                          paramiko from its own venv).
-#   3. the lab venv (sys.executable)     — last resort: the tool only needs
-#                                          the lab's own deps (requests, ...).
+#   1. `brute.python` in lab.yaml    — explicit override wins.
+#   2. the lab venv (sys.executable) — the in-repo tools/ scripts only need
+#                                      the lab's own deps (requests, paramiko).
 def _resolve_tool(tool: str) -> Path:
     """Resolve a brute tool path relative to the project root if not absolute."""
     p = Path(tool)
@@ -80,21 +77,17 @@ def _resolve_tool(tool: str) -> Path:
     return p
 
 
-def _resolve_python(cfg: LabConfig, tool: Path) -> str:
+def _resolve_python(cfg: LabConfig) -> str:
     """Resolve the interpreter to run a brute tool with (see comment above)."""
     if cfg.brute.python:
         return cfg.brute.python
-    for candidate in (tool.parent / ".venv" / "bin" / "python",
-                      tool.parent / ".venv" / "bin" / "python3"):
-        if candidate.exists():
-            return str(candidate)
     return sys.executable
 
 
 def _run_real(cfg, t, wordlist, usernames, tool, timeout) -> dict:
     usernames = usernames or cfg.resolve_usernames()
     cmd = [
-        _resolve_python(cfg, Path(tool)),
+        _resolve_python(cfg),
         str(Path(tool)),
         "--host", t.host,
         "--port", str(t.port),
@@ -138,7 +131,8 @@ def _run_mock(cfg, t, wordlist) -> dict:
         "mock": True,
         "note": (
             "Stub — no brute.tool configured in lab.yaml. "
-            "Plug in your brute-forcer (see labctl/brute.py, `# TODO(integrate)`)."
+            "Set brute.tool to an in-repo tools/ script "
+            "(e.g. ./tools/ssh_brute.py)."
         ),
     }
 

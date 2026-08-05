@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""PLACEHOLDER vulnerable SSH server — Lab-in-a-Box lab target.
+"""Minimal vulnerable SSH server — Lab-in-a-Box lab target.
 
 Accepts the seeded credentials and logs every authentication attempt to stdout
 (visible via `docker compose logs ssh-lab`). No real shell is executed: exec
@@ -61,7 +61,7 @@ class Server(paramiko.ServerInterface):
 
     def check_channel_exec_request(self, channel, command):
         LOG.info("EXEC user=%r command=%r", self.username, command.decode(errors="replace"))
-        channel.send(b"command logged; nothing executed in this placeholder lab server\r\n")
+        channel.send(b"command logged; nothing executed on the host\r\n")
         channel.send_exit_status(0)
         channel.close()
         return True
@@ -75,7 +75,7 @@ def handle(conn):
         transport.start_server(server=server)
         channel = transport.accept(60)
         if channel:
-            channel.send(b"lab-ssh placeholder ready\r\n")
+            channel.send(b"lab-ssh ready\r\n")
         while transport.is_active():
             transport.join(1)
     except Exception as e:  # keep serving through bad/partial handshakes

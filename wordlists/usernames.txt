@@ -2,3 +2,10 @@ admin
 root
 labuser
 testuser
+1337
+Administrator
+gordonb
+pablo
+smithy
+test
+user

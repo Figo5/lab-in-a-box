@@ -10,7 +10,7 @@
 
 Lab-in-a-Box is a **Docker Compose + Python CLI** that provisions a personal,
 intentionally-vulnerable testing lab, configures it (security levels, seeded
-accounts), optionally runs your existing brute-force tool against it, and
+accounts), optionally runs a brute-force tool against a target, and
 aggregates everything into a single Markdown/HTML report.
 
 ![demo](demo.gif)
@@ -26,7 +26,7 @@ labctl up → labctl set-level dvwa medium → labctl seed
 | Service | Image / source | Published port | Purpose |
 |---|---|---|---|
 | dvwa | `vulnerables/web-dvwa` | 127.0.0.1:8081 | SQLi / XSS / broken auth; level is configurable low → impossible |
-| ssh-lab | `./ssh-lab` (placeholder paramiko server) | 127.0.0.1:2222 | SSH credential-stuffing / brute force |
+| ssh-lab | `./ssh-lab` (minimal paramiko server) | 127.0.0.1:2222 | SSH credential-stuffing / brute force |
 | juice-shop | `bkimminich/juice-shop` | 127.0.0.1:8082 | OWASP Juice Shop — broad OWASP Top 10 practice |
 | vuln-api | `./vuln-api` (custom Flask) | 127.0.0.1:8083 | BOLA, SQL injection, mass assignment, plaintext creds |
 
@@ -43,7 +43,7 @@ for its documented vulnerabilities.
 graph LR
     subgraph Host
         CLI[labctl CLI]
-        TOOL[existing brute-forcer]
+        TOOL[brute tools (tools/)]
     end
     subgraph labnet[docker network: labnet — private bridge]
         DVWA[dvwa :8081]
@@ -75,7 +75,7 @@ labctl up                          # pulls images, boots, waits for healthy
 labctl status                      # health + reachability table
 labctl set-level dvwa medium       # DVWA: low|medium|high|impossible
 labctl seed                        # create labuser/labpass123 on each target
-labctl run-brute --target ssh-lab  # real tool once brute.tool is set (see below)
+labctl run-brute --target ssh-lab  # real tool (tools/ssh_brute.py)
 labctl report --html               # runs/<timestamp>/report.md + .html
 labctl down                        # tear down; --purge also wipes volumes
 ```
@@ -112,45 +112,51 @@ targets:
     seed_pass: labpass123
 brute:
   default_wordlist: ./wordlists/common.txt
-  tool: null                   # see "Plug in your brute-forcer"
+  tool: ./tools/ssh_brute.py   # see "Tools"
   usernames: ./wordlists/usernames.txt
 boot_timeout_seconds: 300
 ```
 
 Credentials are placeholders, defined in `.env.example`, with `.env` gitignored.
 
-## Plug in your existing tools
+## Tools
 
-### ssh-lab
-Drop your existing server's `Dockerfile` / `server.py` into `./ssh-lab/` (see
-`ssh-lab/README.md`). Keep port 22 exposed and read the seeded creds from the
-`SSH_SEED_USER` / `SSH_SEED_PASS` env vars or `/labdata/users.json`.
+The repo ships its own testing tools in `tools/`. Each takes `--usernames` and
+`--passwords` wordlists and prints `[+] user:pass` hits plus a
+`[*] attempts=... confirmed=...` summary; `labctl run-brute` parses that into
+`runs/<ts>/<target>-brute.json`.
 
-> macOS note: Docker Desktop's published-port proxy can wedge under high SSH
-> concurrency. If a real brute run stalls, lower `--threads` in `brute.py` or
-> run your native server on the host instead.
+| Tool | Used by `run-brute` | Purpose |
+|---|---|---|
+| `tools/ssh_brute.py` | ssh-lab | SSH password tester (paramiko) |
+| `tools/http_login_brute.py` | juice-shop, vuln-api | JSON API login tester |
+| `tools/dvwa_brute.py` | dvwa | DVWA brute-page tester (handles CSRF tokens) |
+| `tools/web_login_brute.py` | — | HTML form login tester: CSRF, extra fields, cookies |
+| `tools/dir_scan.py` | — | HTTP path/content discovery (`wordlists/paths.txt`) |
+| `tools/form_enum.py` | — | Form/link/parameter surface enumeration |
 
-### Brute-forcer
-The lab ships with a deterministic **mock** so the full pipeline works before
-you plug anything in. To use your real tool, point `brute.tool` at it:
+Which tool runs for `labctl run-brute --target <name>` comes from `lab.yaml`:
+a per-target `tool:` override, or the global `brute.tool` for targets without
+one. A deterministic mock runs only when no `brute.tool` is configured. The
+tool runs under `brute.python` if set, else the lab venv.
 
 ```yaml
 brute:
-  tool: /Users/giofiore/Downloads/testing/ssh_brute.py
+  tool: ./tools/ssh_brute.py
   usernames: ./wordlists/usernames.txt
   default_wordlist: ./wordlists/common.txt
 ```
 
-The tool runs under `brute.python` if set, else a sibling `.venv/` next to the
-tool (ssh_brute.py needs paramiko from its own venv), else the lab venv.
-
-The stock integration invokes the tool as
+`labctl run-brute` invokes the tool as
 `<python> <tool> --host 127.0.0.1 --port <target-port> --usernames FILE --passwords FILE`
 and parses stdout for `[+] user:pass` and the
 `[*] attempts=... confirmed=...` summary. Other tools: implement the contract
 in `labctl/brute.py::_run_real` (returns a dict — see the docstring for the
-shape). No attack logic is reimplemented in this repo; the brute-forcer is only
-shelled out to.
+shape). No attack logic is reimplemented here — the tools are shelled out to.
+
+> macOS note: Docker Desktop's published-port proxy can wedge under high SSH
+> concurrency. If a real brute run stalls, lower `--threads` (brute.py invokes
+> the tool with `--threads 4`).
 
 ## Safety design (enforced in `docker-compose.yml`)
 
@@ -169,8 +175,8 @@ shelled out to.
   127.0.0.1 ports on the relay instead of the targets.
 - **Placeholder credentials only** (`labuser` / `labpass123`), in `.env` +
   `lab.yaml`; `.env` is gitignored.
-- **No exploit code in this repo** — the brute-forcer integration only shells
-  out to your existing tool; the lab targets themselves are the point.
+- **No exploit code in this repo** — `tools/` are authorized credential-testing
+  and attack-surface scripts; the lab targets themselves are the point.
 
 ## Project layout
 
@@ -187,9 +193,11 @@ lab-in-a-box/
     seed.py               #   account seeding
     brute.py              #   brute-forcer interface (mock + real contract)
     report.py             #   markdown/html aggregation
-  ssh-lab/                # placeholder paramiko server (swap me)
+  ssh-lab/                # paramiko SSH server (reads seeded creds)
   vuln-api/               # custom vulnerable Flask API
-  wordlists/              # common.txt, usernames.txt
+  tools/                  # ssh_brute, http_login_brute, dvwa_brute,
+                          #   web_login_brute, dir_scan, form_enum
+  wordlists/              # common.txt, usernames.txt, paths.txt
   runs/                   # gitignored per-run output
 ```
 
@@ -201,7 +209,7 @@ lab-in-a-box/
   `admin`/`password` (set `DVWA_ADMIN_USER`/`DVWA_ADMIN_PASS` in `.env` if
   your image differs).
 - **`run-brute` against ssh-lab stalls with a real tool** — see the macOS note
-  above; lower threads or run the server natively.
+  above; lower `--threads` (brute.py invokes the tool with `--threads 4`).
 - **Port conflicts** — 8081/8082/8083/2222 must be free; change the
   `127.0.0.1:<host>:<container>` bindings in `docker-compose.yml` and update
   the matching port in `labctl/config.py::TARGET_PORTS`.

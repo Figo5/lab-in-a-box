@@ -19,3 +19,10 @@ football
 baseball
 shadow
 master
+abc123
+charley
+p@ssw0rd
+password1
+rootpass
+test
+testpass
