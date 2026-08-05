@@ -140,7 +140,7 @@ class DVWABruteForcer:
             print(f"  {u}:{p}")
 
 
-if __name__ == '__main__':
+def build_parser():
     parser = argparse.ArgumentParser(
         description='DVWA brute-page credential tester (authorized testing only)')
     parser.add_argument('--host', required=True)
@@ -151,8 +151,15 @@ if __name__ == '__main__':
     parser.add_argument('--delay', type=float, default=0.5)
     parser.add_argument('--timeout', type=float, default=10.0)
     parser.add_argument('--retries', type=int, default=1)
+    return parser
 
-    a = parser.parse_args()
+
+def parse_args(argv=None):
+    return build_parser().parse_args(argv)
+
+
+if __name__ == '__main__':
+    a = parse_args()
     DVWABruteForcer(
         base=f"http://{a.host}:{a.port}",
         admin_user=os.environ.get("DVWA_ADMIN_USER", "admin"),
