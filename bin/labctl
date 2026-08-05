@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# labctl — run the Lab-in-a-Box CLI from anywhere inside the repo.
+# Prefers the repo venv if present; falls back to python3.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if [ -x ".venv/bin/python" ]; then
+    PY=".venv/bin/python"
+else
+    PY="python3"
+fi
+exec "$PY" -m labctl "$@"

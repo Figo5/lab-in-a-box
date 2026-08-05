@@ -1,0 +1,4 @@
+# Python 3.9+ compatible (developed and tested on 3.9.6)
+click>=8.1
+PyYAML>=6.0
+requests>=2.31

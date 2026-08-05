@@ -1,0 +1,33 @@
+# Lab-in-a-Box configuration.
+# Authorized-use-only: this lab is for testing systems you own or have
+# written permission to test. See README.md.
+network: labnet
+
+targets:
+  dvwa:
+    security_level: medium
+    seed_user: labuser
+    seed_pass: labpass123
+  ssh-lab:
+    seed_user: labuser
+    seed_pass: labpass123
+  juice-shop:
+    seed_user: labuser
+    seed_pass: labpass123
+  vuln-api:
+    seed_user: labuser
+    seed_pass: labpass123
+
+brute:
+  default_wordlist: ./wordlists/common.txt
+  # Point at your existing brute-forcer to replace the mock. The contract is
+  # documented in labctl/brute.py. The tool runs under `brute.python` if set,
+  # else a sibling .venv/ next to the tool (ssh_brute.py needs paramiko from
+  # its own venv), else the lab venv. Override only when the tool's env lives
+  # elsewhere:
+  #   python: /Users/giofiore/Downloads/testing/.venv/bin/python
+  tool: /Users/giofiore/Downloads/testing/ssh_brute.py
+  usernames: ./wordlists/usernames.txt
+
+# How long `labctl up` polls healthchecks before giving up.
+boot_timeout_seconds: 300

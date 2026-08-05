@@ -1,0 +1,130 @@
+"""Run the existing brute-forcer against a lab target.
+
+Two modes:
+  * Real   — if lab.yaml `brute.tool` points at an existing brute-forcer, it is
+             invoked as a subprocess and stdout is parsed into the results dict.
+             The stock integration targets `ssh_brute.py` (host + usernames +
+             passwords), which prints `[+] user:pass` lines and a
+             `[*] attempts=... confirmed=...` summary.
+  * Mock   — otherwise a deterministic stub runs, so the pipeline
+             (up -> seed -> run-brute -> report) works end-to-end before your
+             tool is plugged in. The stub "finds" the seeded account iff its
+             password appears in the wordlist.
+
+Results contract (shared by both modes):
+    {
+      "target": str, "host": str, "port": int,
+      "wordlist": str, "attempts": int,
+      "started": str, "ended": str,
+      "successes": [{"username": str, "password": str}, ...],
+      "mock": bool,
+    }
+"""
+
+from __future__ import annotations
+
+import re
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+from .config import LabConfig
+
+_SUMMARY_RE = re.compile(r"attempts=(\d+)\s+confirmed=(\d+)\s+failures=(\d+)\s+errors=(\d+)")
+_SUCCESS_RE = re.compile(r"^\[\+\]\s+(\S+):(\S+)\s*$", re.MULTILINE)
+
+
+def run(
+    cfg: LabConfig,
+    target: str,
+    wordlist: Path,
+    usernames: Path | None = None,
+    timeout: int = 600,
+) -> dict:
+    t = cfg.get(target)
+    started = time.strftime("%Y-%m-%dT%H:%M:%S")
+
+    tool = cfg.brute.tool
+    if tool and Path(tool).exists():
+        result = _run_real(cfg, t, wordlist, usernames, tool, timeout)
+    else:
+        result = _run_mock(cfg, t, wordlist)
+
+    result["started"] = started
+    result["ended"] = time.strftime("%Y-%m-%dT%H:%M:%S")
+    result["host"] = t.host
+    result["port"] = t.port
+    result["target"] = target
+    result["wordlist"] = str(wordlist)
+    return result
+
+
+# --------------------------------------------------------------------------
+# Real integration
+# --------------------------------------------------------------------------
+def _resolve_python(cfg: LabConfig, tool: Path) -> str:
+    """Interpreter for the brute tool. `brute.python` in lab.yaml wins; else a
+    sibling `.venv/` next to the tool (tools often ship with their own env,
+    e.g. ssh_brute.py needs paramiko); else fall back to the lab venv."""
+    if cfg.brute.python:
+        return cfg.brute.python
+    for candidate in (tool.parent / ".venv" / "bin" / "python",
+                      tool.parent / ".venv" / "bin" / "python3"):
+        if candidate.exists():
+            return str(candidate)
+    return sys.executable
+
+
+def _run_real(cfg, t, wordlist, usernames, tool, timeout) -> dict:
+    usernames = usernames or cfg.resolve_usernames()
+    cmd = [
+        _resolve_python(cfg, Path(tool)),
+        str(Path(tool)),
+        "--host", t.host,
+        "--port", str(t.port),
+        "--usernames", str(usernames),
+        "--passwords", str(wordlist),
+        "--threads", "4",
+        "--delay", "0.05",
+        "--timeout", "10",
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    stdout = proc.stdout
+    successes = [{"username": u, "password": p} for u, p in _SUCCESS_RE.findall(stdout)]
+    m = _SUMMARY_RE.search(stdout)
+    attempts = int(m.group(1)) if m else len(_read_wordlist(wordlist))
+    return {
+        "attempts": attempts,
+        "successes": successes,
+        "mock": False,
+        "tool": str(tool),
+        "exit_code": proc.returncode,
+        "tool_stdout": stdout[-2000:],  # tail kept for the report
+        "note": "Real brute-forcer run (see tool_stdout for full output).",
+    }
+
+
+# --------------------------------------------------------------------------
+# Mock (default)
+# --------------------------------------------------------------------------
+def _run_mock(cfg, t, wordlist) -> dict:
+    passwords = _read_wordlist(wordlist)
+    # Deterministic: the seeded account counts as "found" iff its password is
+    # present in the wordlist.
+    successes = []
+    if t.seed_user and t.seed_pass and t.seed_pass in passwords:
+        successes.append({"username": t.seed_user, "password": t.seed_pass})
+    return {
+        "attempts": len(passwords),
+        "successes": successes,
+        "mock": True,
+        "note": (
+            "Stub — no brute.tool configured in lab.yaml. "
+            "Plug in your brute-forcer (see labctl/brute.py, `# TODO(integrate)`)."
+        ),
+    }
+
+
+def _read_wordlist(path: Path) -> list:
+    return [ln.strip() for ln in path.read_text().splitlines() if ln.strip()]

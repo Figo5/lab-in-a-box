@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lab-in-a-box"
+version = "0.1.0"
+description = "Personal isolated security-testing lab: Docker Compose + CLI orchestration and reporting"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "click>=8.1",
+    "PyYAML>=6.0",
+    "requests>=2.31",
+]
+
+[project.scripts]
+labctl = "labctl.cli:main"
+
+[tool.setuptools]
+packages = ["labctl"]

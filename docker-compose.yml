@@ -1,0 +1,97 @@
+name: lab-in-a-box
+
+# =============================================================================
+# Lab-in-a-Box — personal, isolated, AUTHORIZED-USE-ONLY security lab.
+# See README.md for the full safety model.
+#
+# Isolation model on this host:
+#   * labnet is a private user-defined bridge network (NOT `internal: true` —
+#     Docker Desktop does not publish ports from internal networks, verified
+#     empirically, so an internal net would make the lab unreachable from the
+#     host. See README → "Safety design" for the relay-bastion alternative if
+#     you want the lab blackholed from the internet).
+#   * Every published port binds to 127.0.0.1 only — nothing is exposed to the
+#     host's LAN/WAN. Host -> lab traffic happens over the docker-proxy.
+# =============================================================================
+
+services:
+  dvwa:
+    image: vulnerables/web-dvwa:latest
+    container_name: lib-dvwa
+    ports:
+      - "127.0.0.1:8081:80"
+    networks:
+      - labnet
+    # PHP CLI is guaranteed present on a PHP image; fsockopen avoids relying on
+    # curl/wget which may be missing. `$$` escapes $ from Compose interpolation.
+    healthcheck:
+      test: ["CMD-SHELL", "php -r '$$h=@fsockopen(\"127.0.0.1\",80,$$e,$$s,2); exit($$h?0:1);'"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
+    restart: unless-stopped
+
+  ssh-lab:
+    build: ./ssh-lab
+    container_name: lib-ssh-lab
+    ports:
+      - "127.0.0.1:2222:22"
+    networks:
+      - labnet
+    environment:
+      SSH_SEED_USER: ${SSH_SEED_USER:-labuser}
+      SSH_SEED_PASS: ${SSH_SEED_PASS:-labpass123}
+    volumes:
+      - lab-seed-data:/labdata
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import socket;s=socket.socket();s.settimeout(2);s.connect(('127.0.0.1',22));s.close()\" || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  juice-shop:
+    image: bkimminich/juice-shop:latest
+    container_name: lib-juice-shop
+    ports:
+      - "127.0.0.1:8082:3000"
+    networks:
+      - labnet
+    # The juice-shop image is distroless (no /bin/sh), so this must use the
+    # exec-form healthcheck (CMD-SHELL can't run). node is NOT on PATH — it's
+    # at /nodejs/bin/node. Global fetch requires Node >= 18. If you swap the
+    # image, adjust the path.
+    healthcheck:
+      test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 20s
+    restart: unless-stopped
+
+  vuln-api:
+    build: ./vuln-api
+    container_name: lib-vuln-api
+    ports:
+      - "127.0.0.1:8083:8080"
+    networks:
+      - labnet
+    environment:
+      SEED_USER: ${SEED_USER:-labuser}
+      SEED_PASS: ${SEED_PASS:-labpass123}
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=2)\" || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  lab-seed-data:
+    name: lab-in-a-box-seed-data
+
+networks:
+  labnet: {}
