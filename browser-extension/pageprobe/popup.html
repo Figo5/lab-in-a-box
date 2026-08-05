@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>PageProbe</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="pp-header">
+    <div class="pp-title-row">
+      <span class="pp-title">PageProbe</span>
+      <span id="pp-stats" class="pp-stats"></span>
+    </div>
+    <div id="pp-url" class="pp-url" title=""></div>
+  </header>
+
+  <div id="pp-banner" class="pp-banner" hidden></div>
+
+  <div id="pp-status" class="pp-status"></div>
+
+  <div id="pp-content" hidden>
+    <div class="pp-toolbar">
+      <button id="pp-copy-json" class="pp-btn" type="button">Copy page JSON</button>
+      <button id="pp-copy-formenum" class="pp-btn" type="button">Copy form_enum cmd</button>
+    </div>
+
+    <section class="pp-section" id="pp-forms-section">
+      <h2 class="pp-section-title">Forms</h2>
+      <div id="pp-forms" class="pp-forms"></div>
+    </section>
+
+    <section class="pp-section">
+      <button id="pp-endpoints-toggle" class="pp-toggle" type="button">
+        <span class="pp-toggle-caret">▸</span> Endpoints <span id="pp-endpoints-count" class="pp-count"></span>
+      </button>
+      <div id="pp-endpoints-body" class="pp-collapsible-body" hidden></div>
+    </section>
+
+    <section class="pp-section" id="pp-params-section">
+      <h2 class="pp-section-title">Query params</h2>
+      <div id="pp-params" class="pp-params"></div>
+    </section>
+
+    <section class="pp-section" id="pp-cookies-section">
+      <div class="pp-cookie-label">
+        Cookies
+        <button id="pp-copy-cookies" class="pp-btn pp-btn-mini" type="button">Copy</button>
+      </div>
+      <code id="pp-cookies" class="pp-cookies"></code>
+    </section>
+  </div>
+
+  <footer class="pp-footer">
+    <span id="pp-timestamp"></span>
+    <span class="pp-footer-note">Authorized targets only</span>
+  </footer>
+
+  <script src="lib/commands.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>
