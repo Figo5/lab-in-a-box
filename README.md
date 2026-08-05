@@ -158,6 +158,40 @@ shape). No attack logic is reimplemented here — the tools are shelled out to.
 > concurrency. If a real brute run stalls, lower `--threads` (brute.py invokes
 > the tool with `--threads 4`).
 
+## Browser extension (PageProbe)
+
+`browser-extension/pageprobe/` is a small unpacked MV3 extension that surveys
+the page you're on — every form (method, resolved action, fields, CSRF tokens),
+outbound endpoints, query parameters, and script-visible cookies — and copies
+ready-to-run commands for the `tools/` scripts into your clipboard. It only
+generates commands; the tools live in this repo and only ever run against hosts
+you point them at.
+
+Load it unpacked (no build step):
+
+1. Open `chrome://extensions`.
+2. Enable **Developer mode**.
+3. Click **Load unpacked** and select `browser-extension/pageprobe/`.
+4. Pin PageProbe, open a lab page (e.g. `http://127.0.0.1:8081/login.php`), click
+   the icon, then **Copy web_login_brute.py cmd** (or **Copy form_enum.py cmd**).
+
+Run the copied command from the repo root with the lab venv's python:
+
+```bash
+.venv/bin/python tools/web_login_brute.py --url 'http://127.0.0.1:8081/login.php' \
+  --method POST --usernames wordlists/usernames.txt --passwords wordlists/common.txt \
+  --user-field username --pass-field password --csrf-field user_token \
+  --csrf-url 'http://127.0.0.1:8081/login.php' --extra-field 'Login=Login' --dry-run
+```
+
+Brute commands don't carry the page's session cookie — `web_login_brute.py`
+opens its own session per attempt. `form_enum.py` commands keep the page
+cookies (a plain fetch, where auth state matters).
+
+Same authorized-use boundary as the rest of the repo: PageProbe flags login
+forms on non-local hosts with a warning banner, and its commands are for targets
+you own or have written permission to test.
+
 ## Safety design (enforced in `docker-compose.yml`)
 
 - **All port bindings are `127.0.0.1` only** — never `0.0.0.0`; nothing is
@@ -197,6 +231,7 @@ lab-in-a-box/
   vuln-api/               # custom vulnerable Flask API
   tools/                  # ssh_brute, http_login_brute, dvwa_brute,
                           #   web_login_brute, dir_scan, form_enum
+  browser-extension/      # PageProbe unpacked extension (pageprobe/)
   wordlists/              # common.txt, usernames.txt, paths.txt
   runs/                   # gitignored per-run output
 ```

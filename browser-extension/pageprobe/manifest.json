@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "PageProbe",
+  "version": "0.1.0",
+  "description": "Authorized form & endpoint inspector. Survey the forms, fields, endpoints, and cookies on the current page and copy ready-to-run commands for your authorized-testing toolkit.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "PageProbe — inspect this page"
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "permissions": ["activeTab", "scripting", "clipboardWrite"]
+}
