@@ -91,7 +91,10 @@ def _resolve_python(cfg: LabConfig, tool: Path) -> str:
     return sys.executable
 
 
-def _run_real(cfg, t, wordlist, usernames, tool, timeout) -> dict:
+def _build_command(cfg, t, wordlist, usernames, tool) -> list:
+    """Build the tool subprocess command line (split out from _run_real so
+    the flag contract can be tested against each tool's own parser without
+    spawning a subprocess)."""
     usernames = usernames or cfg.resolve_usernames()
     cmd = [
         _resolve_python(cfg, Path(tool)),
@@ -106,6 +109,11 @@ def _run_real(cfg, t, wordlist, usernames, tool, timeout) -> dict:
     ]
     # Per-target extras (e.g. --path/--user-field/--user-suffix for HTTP tools).
     cmd.extend(t.tool_args or [])
+    return cmd
+
+
+def _run_real(cfg, t, wordlist, usernames, tool, timeout) -> dict:
+    cmd = _build_command(cfg, t, wordlist, usernames, tool)
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     stdout = proc.stdout
     successes = [{"username": u, "password": p} for u, p in _SUCCESS_RE.findall(stdout)]
