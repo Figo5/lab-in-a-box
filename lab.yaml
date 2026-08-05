@@ -8,23 +8,37 @@ targets:
     security_level: medium
     seed_user: labuser
     seed_pass: labpass123
+    # Real brute tool for this target (see `brute:` below). Overrides the
+    # global brute.tool. `tool_args` are appended to the tool command line.
+    tool: ./tools/dvwa_brute.py
   ssh-lab:
     seed_user: labuser
     seed_pass: labpass123
   juice-shop:
     seed_user: labuser
     seed_pass: labpass123
+    tool: ./tools/http_login_brute.py
+    tool_args:
+      - "--path=/rest/user/login"
+      - "--user-field=email"
+      - "--user-suffix=@lab.local"
   vuln-api:
     seed_user: labuser
     seed_pass: labpass123
+    tool: ./tools/http_login_brute.py
+    tool_args:
+      - "--path=/api/login"
+      - "--user-field=username"
 
 brute:
   default_wordlist: ./wordlists/common.txt
-  # Point at your existing brute-forcer to replace the mock. The contract is
-  # documented in labctl/brute.py. The tool runs under `brute.python` if set,
-  # else a sibling .venv/ next to the tool (ssh_brute.py needs paramiko from
-  # its own venv), else the lab venv. Override only when the tool's env lives
-  # elsewhere:
+  # The global default brute tool (used when a target has no `tool:` of its
+  # own). The contract is documented in labctl/brute.py: the tool must accept
+  # --host/--port/--usernames/--passwords/--threads/--delay/--timeout and
+  # print `[+] user:pass` lines plus `[*] attempts=N confirmed=N ...`.
+  # The tool runs under `brute.python` if set, else a sibling .venv/ next to
+  # the tool (ssh_brute.py needs paramiko from its own venv), else the lab
+  # venv. Override only when the tool's env lives elsewhere:
   #   python: /Users/giofiore/Downloads/testing/.venv/bin/python
   tool: /Users/giofiore/Downloads/testing/ssh_brute.py
   usernames: ./wordlists/usernames.txt

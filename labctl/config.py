@@ -31,6 +31,10 @@ class Target:
     seed_user: str | None = None
     seed_pass: str | None = None
     port: int = 0
+    # Per-target brute tool: overrides the global `brute.tool`. `tool_args`
+    # are appended to the tool command line (e.g. HTTP login path/field names).
+    tool: str | None = None
+    tool_args: list | None = None
 
     @property
     def host(self) -> str:
@@ -102,6 +106,8 @@ def _parse(raw: dict) -> LabConfig:
             seed_user=spec.get("seed_user"),
             seed_pass=spec.get("seed_pass"),
             port=int(spec.get("port") or TARGET_PORTS.get(name, 0)),
+            tool=spec.get("tool"),
+            tool_args=spec.get("tool_args"),
         )
 
     brute = raw.get("brute") or {}

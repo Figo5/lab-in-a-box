@@ -29,7 +29,7 @@ import sys
 import time
 from pathlib import Path
 
-from .config import LabConfig
+from .config import PROJECT_ROOT, LabConfig
 
 _SUMMARY_RE = re.compile(r"attempts=(\d+)\s+confirmed=(\d+)\s+failures=(\d+)\s+errors=(\d+)")
 _SUCCESS_RE = re.compile(r"^\[\+\]\s+(\S+):(\S+)\s*$", re.MULTILINE)
@@ -45,9 +45,11 @@ def run(
     t = cfg.get(target)
     started = time.strftime("%Y-%m-%dT%H:%M:%S")
 
-    tool = cfg.brute.tool
-    if tool and Path(tool).exists():
-        result = _run_real(cfg, t, wordlist, usernames, tool, timeout)
+    # Per-target tool (target spec `tool:`) overrides the global `brute.tool`.
+    tool = t.tool or cfg.brute.tool
+    tool_path = _resolve_tool(tool) if tool else None
+    if tool_path and tool_path.exists():
+        result = _run_real(cfg, t, wordlist, usernames, str(tool_path), timeout)
     else:
         result = _run_mock(cfg, t, wordlist)
 
@@ -63,10 +65,23 @@ def run(
 # --------------------------------------------------------------------------
 # Real integration
 # --------------------------------------------------------------------------
+# Interpreter resolution order for the brute tool (see also README.md):
+#   1. `brute.python` in lab.yaml        — explicit override wins.
+#   2. <tool dir>/.venv/bin/python       — a sibling venv shipped next to the
+#                                          tool (e.g. ssh_brute.py needs
+#                                          paramiko from its own venv).
+#   3. the lab venv (sys.executable)     — last resort: the tool only needs
+#                                          the lab's own deps (requests, ...).
+def _resolve_tool(tool: str) -> Path:
+    """Resolve a brute tool path relative to the project root if not absolute."""
+    p = Path(tool)
+    if not p.is_absolute():
+        p = PROJECT_ROOT / p
+    return p
+
+
 def _resolve_python(cfg: LabConfig, tool: Path) -> str:
-    """Interpreter for the brute tool. `brute.python` in lab.yaml wins; else a
-    sibling `.venv/` next to the tool (tools often ship with their own env,
-    e.g. ssh_brute.py needs paramiko); else fall back to the lab venv."""
+    """Resolve the interpreter to run a brute tool with (see comment above)."""
     if cfg.brute.python:
         return cfg.brute.python
     for candidate in (tool.parent / ".venv" / "bin" / "python",
@@ -89,6 +104,8 @@ def _run_real(cfg, t, wordlist, usernames, tool, timeout) -> dict:
         "--delay", "0.05",
         "--timeout", "10",
     ]
+    # Per-target extras (e.g. --path/--user-field/--user-suffix for HTTP tools).
+    cmd.extend(t.tool_args or [])
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     stdout = proc.stdout
     successes = [{"username": u, "password": p} for u, p in _SUCCESS_RE.findall(stdout)]
