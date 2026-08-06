@@ -39,7 +39,7 @@ brute:
   # The tool runs under `brute.python` if set, else a sibling .venv/ next to
   # the tool (ssh_brute.py needs paramiko from its own venv), else the lab
   # venv. Override only when the tool's env lives elsewhere:
-  #   python: /Users/giofiore/Downloads/testing/.venv/bin/python
+  #   python: /path/to/your/venv/bin/python
   # The in-tree ./tools/ssh_brute.py covers the ssh-lab target (which has no
   # per-target `tool:` above), so the global default is the SSH tool.
   tool: ./tools/ssh_brute.py

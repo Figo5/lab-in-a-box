@@ -112,7 +112,7 @@ targets:
     seed_pass: labpass123
 brute:
   default_wordlist: ./wordlists/common.txt
-  tool: null                   # see "Plug in your brute-forcer"
+  tool: ./tools/ssh_brute.py   # in-tree default; see "Plug in your brute-forcer"
   usernames: ./wordlists/usernames.txt
 boot_timeout_seconds: 300
 ```
@@ -131,18 +131,20 @@ Drop your existing server's `Dockerfile` / `server.py` into `./ssh-lab/` (see
 > run your native server on the host instead.
 
 ### Brute-forcer
-The lab ships with a deterministic **mock** so the full pipeline works before
-you plug anything in. To use your real tool, point `brute.tool` at it:
+The lab ships with a real in-tree tool — `tools/ssh_brute.py` for the
+ssh-lab target — so the full pipeline works out of the box. A deterministic
+**mock** runs as a fallback when a target has no `tool:` and no global
+`brute.tool` is set. To point at your own tool instead, edit `brute.tool`:
 
 ```yaml
 brute:
-  tool: /Users/giofiore/Downloads/testing/ssh_brute.py
+  tool: ./tools/ssh_brute.py          # any script implementing the contract below
   usernames: ./wordlists/usernames.txt
   default_wordlist: ./wordlists/common.txt
 ```
 
 The tool runs under `brute.python` if set, else a sibling `.venv/` next to the
-tool (ssh_brute.py needs paramiko from its own venv), else the lab venv.
+tool (`ssh_brute.py` needs paramiko from its own venv), else the lab venv.
 
 The stock integration invokes the tool as
 `<python> <tool> --host 127.0.0.1 --port <target-port> --usernames FILE --passwords FILE`
@@ -150,7 +152,8 @@ and parses stdout for `[+] user:pass` and the
 `[*] attempts=... confirmed=...` summary. Other tools: implement the contract
 in `labctl/brute.py::_run_real` (returns a dict — see the docstring for the
 shape). No attack logic is reimplemented in this repo; the brute-forcer is only
-shelled out to.
+shelled out to. A reference implementation lives in
+`tools/ssh_brute.py` (SSH) and `tools/http_login_brute.py` (HTTP/JSON).
 
 ## Safety design (enforced in `docker-compose.yml`)
 
@@ -179,18 +182,29 @@ lab-in-a-box/
   docker-compose.yml
   lab.yaml
   .env.example
-  labctl/                 # CLI package
-    cli.py                #   click entrypoints
-    config.py             #   lab.yaml loading/validation
-    compose.py            #   docker compose wrapper + healthchecks
-    security_level.py     #   DVWA security level
-    seed.py               #   account seeding
-    brute.py              #   brute-forcer interface (mock + real contract)
-    report.py             #   markdown/html aggregation
-  ssh-lab/                # placeholder paramiko server (swap me)
-  vuln-api/               # custom vulnerable Flask API
-  wordlists/              # common.txt, usernames.txt
-  runs/                   # gitignored per-run output
+  LICENSE                # MIT
+  pyproject.toml        # package metadata (labctl entrypoint)
+  .github/workflows/test.yml   # CI: JS + Python test suites on push/PR
+  labctl/               # CLI package
+    cli.py              #   click entrypoints
+    config.py           #   lab.yaml loading/validation
+    compose.py           #   docker compose wrapper + healthchecks
+    security_level.py   #   DVWA security level
+    seed.py             #   account seeding
+    brute.py            #   brute-forcer interface (mock + real contract)
+    report.py           #   markdown/html aggregation
+  tools/                # standalone tools — runnable on their own
+    ssh_brute.py        #   SSH credential tester (paramiko)
+    http_login_brute.py #   HTTP/JSON login credential tester (requests)
+    dvwa_brute.py        #   DVWA-form-aware credential tester
+    dir_scan.py         #   wordlist path/endpoint enumerator (requests)
+    form_enum.py        #   page-parser form enumerator
+    test.py             #   smoke-test generator target
+  ssh-lab/              # placeholder paramiko server (swap me)
+  vuln-api/             # custom vulnerable Flask API
+  wordlists/            # common.txt, usernames.txt, paths.txt
+  browser-extension/   # PageProbe Chrome extension
+  runs/                 # gitignored per-run output
 ```
 
 ## Troubleshooting

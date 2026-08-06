@@ -8,11 +8,21 @@ version = "0.1.0"
 description = "Personal isolated security-testing lab: Docker Compose + CLI orchestration and reporting"
 readme = "README.md"
 requires-python = ">=3.9"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [
+    { name = "The lab-in-a-box authors" },
+]
 dependencies = [
     "click>=8.1",
     "PyYAML>=6.0",
     "requests>=2.31",
 ]
+
+[project.urls]
+Homepage = "https://github.com/Figo5/lab-in-a-box"
+Repository = "https://github.com/Figo5/lab-in-a-box"
+Issues = "https://github.com/Figo5/lab-in-a-box/issues"
 
 [project.scripts]
 labctl = "labctl.cli:main"

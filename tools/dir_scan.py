@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
-"""Wordlist-based path/endpoint enumerator for authorized lab testing.
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 The lab-in-a-box authors
+#
+# Wordlist-based path/endpoint enumerator — authorized testing only.
+# See LICENSE at the repo root for the full notice.
+"""Wordlist-based path/endpoint enumerator for authorized security testing.
 
 Reads a wordlist of candidate paths and GETs each one against a base URL,
 reporting which paths return a "found" response (status < 400 by default, or
-a caller-configured status set). The output mirrors the other tools/ scripts:
-a line per finding plus a `[*] attempts=N ...` summary, so it composes with the
-same review/redaction workflow used by the brute tools.
+a caller-configured status set). It works against any HTTP target you own or
+have written permission to test — including a local lab target or a staging
+host.
 
-This tool only ever requests the URL it is given. It is the directory-scan
-analogue of form_enum.py: a server-side re-check using a plain wordlist rather
-than a page parser.
+This tool only ever requests the URL it is given. Do not point it at
+systems you do not own or lack written permission to test. It is the
+directory-scan analogue of form_enum.py: a server-side re-check using a plain
+wordlist rather than a page parser.
 
 Output contract (matches the other tools/ scripts):
   * `[+] <path> HTTP <status> (<n> bytes)`   for each found path

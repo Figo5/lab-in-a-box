@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
-"""SSH credential tester for the Lab-in-a-Box ssh-lab target.
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 The lab-in-a-box authors
+#
+# SSH credential tester — authorized testing only.
+# See LICENSE at the repo root for the full notice.
+"""SSH credential tester for authorized security testing.
 
 Attempts password auth for each username/password pair against an SSH
-server and reports which pairs authenticate. Works against the lab's
-placeholder paramiko server (ssh-lab/server.py) and any real SSH server
-that authenticates via plain password auth.
+server and reports which pairs authenticate. It works against any SSH
+server that allows plain password auth — including the lab's placeholder
+paramiko server (ssh-lab/server.py) or a real host you own or have written
+permission to test.
 
-This only ever attacks the host/port it is given.
+This only ever attacks the host/port it is given. Do not point it at
+systems you do not own or lack written permission to test.
 
 Output contract (parsed by labctl/brute.py):
   * `[+] <user>:<password>`   for each confirmed login
