@@ -19,6 +19,7 @@ from labctl.config import BruteConfig, LabConfig, Target  # noqa: E402
 
 import dvwa_brute  # noqa: E402
 import http_login_brute  # noqa: E402
+import ssh_brute  # noqa: E402
 
 
 def _make_cfg():
@@ -89,6 +90,18 @@ class LabctlToToolFlagContractTests(unittest.TestCase):
         argv = _argv_for(t, "./tools/http_login_brute.py")
         with self.assertRaises(SystemExit):
             http_login_brute.parse_args(argv)
+
+    def test_ssh_lab_no_tool_args(self):
+        # lab.yaml ssh-lab target: no per-target `tool:`, so it falls back to
+        # the global brute.tool (./tools/ssh_brute.py) with no tool_args. Port
+        # mirrors the lab.yaml ssh-lab published port (config.TARGET_PORTS).
+        t = Target(name="ssh-lab", tool=None, tool_args=[], port=2222)
+        argv = _argv_for(t, "./tools/ssh_brute.py")
+        ns = ssh_brute.parse_args(argv)  # must not raise SystemExit
+        self.assertEqual(ns.host, t.host)
+        self.assertEqual(ns.port, 2222)
+        self.assertEqual(ns.usernames, str(REPO_ROOT / "wordlists" / "usernames.txt"))
+        self.assertEqual(ns.passwords, str(REPO_ROOT / "wordlists" / "common.txt"))
 
 
 if __name__ == "__main__":

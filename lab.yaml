@@ -40,7 +40,9 @@ brute:
   # the tool (ssh_brute.py needs paramiko from its own venv), else the lab
   # venv. Override only when the tool's env lives elsewhere:
   #   python: /Users/giofiore/Downloads/testing/.venv/bin/python
-  tool: /Users/giofiore/Downloads/testing/ssh_brute.py
+  # The in-tree ./tools/ssh_brute.py covers the ssh-lab target (which has no
+  # per-target `tool:` above), so the global default is the SSH tool.
+  tool: ./tools/ssh_brute.py
   usernames: ./wordlists/usernames.txt
 
 # How long `labctl up` polls healthchecks before giving up.

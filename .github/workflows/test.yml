@@ -1,0 +1,37 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  js-tests:
+    name: PageProbe JS tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run commands.test.js
+        working-directory: browser-extension/pageprobe/test
+        run: node commands.test.js
+      - name: Run collector.test.js
+        working-directory: browser-extension/pageprobe/test
+        run: node collector.test.js
+
+  python-tests:
+    name: tools/ + labctl/ Python tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tools/ tests
+        working-directory: tools
+        run: python -m unittest discover -p "test_*.py" -v
+      - name: Run labctl/ tests
+        run: python -m unittest discover -s labctl -t . -p "test_*.py" -v
