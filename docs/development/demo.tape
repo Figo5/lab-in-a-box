@@ -1,8 +1,8 @@
 # =============================================================================
-# Lab-in-a-Box demo — records `demo.gif` for the README.
+# Lab-in-a-Box demo — records a local `demo.gif` walkthrough.
 #
 # Run from the repo root:
-#     vhs demo.tape
+#     vhs docs/development/demo.tape
 #
 # The lab should already be running (`./bin/labctl up` is idempotent, but see
 # the Sleep note at the `labctl up` step if you are starting cold).

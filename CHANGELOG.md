@@ -81,7 +81,7 @@ history is currently tracked under `[Unreleased]`.
   `wordlists/usernames.txt` expanded from 4 to 20 entries — still a small,
   curated, readable list rather than a large dictionary dump. (2026-08-05)
 - `lab.yaml` `brute.tool` repointed from a stale absolute path
-  (`/Users/giofiore/Downloads/testing/ssh_brute.py`) to the in-tree
+  (`<local-tools>/ssh_brute.py`) to the in-tree
   `./tools/ssh_brute.py`, so `labctl run-brute --target ssh-lab` uses the
   real tool by default. (2026-08-05)
 - README project-title formatting. (`dc0cace`)

@@ -13,7 +13,13 @@ intentionally-vulnerable testing lab, configures it (security levels, seeded
 accounts), optionally runs your existing brute-force tool against it, and
 aggregates everything into a single Markdown/HTML report.
 
-![demo](demo.gif)
+[Quickstart](#quickstart) · [Architecture](#architecture) · [Safety design](#safety-design-enforced-in-docker-composeyml) · [Testing](#testing)
+
+![Lab-in-a-Box CLI command reference](docs/media/cli.png)
+
+*Actual `labctl --help` output. This reference capture does not start any targets.*
+
+[Recorded lab walkthrough and capture notes](docs/development/README.md).
 
 ```
 labctl up → labctl set-level dvwa medium → labctl seed
@@ -31,9 +37,10 @@ labctl up → labctl set-level dvwa medium → labctl seed
 | vuln-api | `./vuln-api` (custom Flask) | 127.0.0.1:8083 | BOLA, SQL injection, mass assignment, plaintext creds |
 
 **vuln-api tradeoff:** a minimal custom Flask API was chosen over OWASP crAPI
-because it is one self-contained container, builds reliably offline, and works
-on the `internal` network (crAPI is a multi-service app with MongoDB plus
-external callback services that would break without outbound internet). The
+because it is one self-contained container with no external runtime callback
+services (crAPI is a multi-service app with additional dependencies). Image pulls
+and dependency installation require network access; the default network is the
+private bridge documented below. The
 cost: it is synthetic code rather than a real-world app — see `vuln-api/app.py`
 for its documented vulnerabilities.
 
@@ -59,7 +66,8 @@ graph LR
     CLI -->|runs/ artifacts| REPO[report.md / report.html]
 ```
 
-All container-to-host traffic is over 127.0.0.1 published ports.
+Host-side tools reach the targets through ports published on 127.0.0.1.
+The private bridge is not an outbound-network isolation guarantee.
 
 ## Quickstart
 
@@ -151,8 +159,7 @@ The stock integration invokes the tool as
 and parses stdout for `[+] user:pass` and the
 `[*] attempts=... confirmed=...` summary. Other tools: implement the contract
 in `labctl/brute.py::_run_real` (returns a dict — see the docstring for the
-shape). No attack logic is reimplemented in this repo; the brute-forcer is only
-shelled out to. A reference implementation lives in
+shape). The CLI shells out to the standalone authorized-use tools. Implementations live in
 `tools/ssh_brute.py` (SSH) and `tools/http_login_brute.py` (HTTP/JSON).
 
 ## Safety design (enforced in `docker-compose.yml`)
@@ -172,8 +179,10 @@ shelled out to. A reference implementation lives in
   127.0.0.1 ports on the relay instead of the targets.
 - **Placeholder credentials only** (`labuser` / `labpass123`), in `.env` +
   `lab.yaml`; `.env` is gitignored.
-- **No exploit code in this repo** — the brute-forcer integration only shells
-  out to your existing tool; the lab targets themselves are the point.
+- **Authorized lab tooling only** — bundled credential-testing and enumeration
+  tools are for targets you own or have written permission to test. The CLI
+  invokes those tools against the local lab; it does not grant authorization
+  for any other target.
 
 ## Project layout
 
@@ -223,3 +232,23 @@ lab-in-a-box/
   switched `labnet` to `internal: true` (or are on a Docker Desktop that doesn't
   publish ports from internal networks), published ports won't open. Keep the
   network a plain bridge, or use the relay-bastion pattern described above.
+
+## Testing
+
+The [CI workflow](https://github.com/Figo5/lab-in-a-box/actions/workflows/test.yml)
+runs PageProbe's JavaScript tests and the Python tool/CLI tests. These checks do
+not require starting vulnerable containers:
+
+```sh
+python -m pip install -r requirements.txt
+(cd tools && python -m unittest discover -p 'test_*.py' -v)
+python -m unittest discover -s labctl -t . -p 'test_*.py' -v
+node browser-extension/pageprobe/test/commands.test.js
+node browser-extension/pageprobe/test/collector.test.js
+```
+
+## Status and license
+
+A local learning and testing lab. The synthetic API and placeholder SSH service
+are intentionally vulnerable fixtures, not production services. Real-target
+integration requires your local Docker environment. [MIT](LICENSE).
