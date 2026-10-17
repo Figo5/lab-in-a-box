@@ -74,6 +74,7 @@ The private bridge is not an outbound-network isolation guarantee.
 Prerequisites: Docker with Compose v2, Python 3.9+.
 
 ```bash
+git clone https://github.com/Figo5/lab-in-a-box.git
 cd lab-in-a-box
 python3 -m venv .venv
 .venv/bin/pip install -e .        # installs the `labctl` command (or use ./bin/labctl)
