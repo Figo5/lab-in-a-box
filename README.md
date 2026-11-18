@@ -44,7 +44,7 @@ private bridge documented below. The
 cost: it is synthetic code rather than a real-world app — see `vuln-api/app.py`
 for its documented vulnerabilities.
 
-**Walkthrough:** [owning vuln-api in four requests](docs/walkthrough-vuln-api.md), from an anonymous request to the admin flag, with fixes.
+**Walkthroughs:** [owning vuln-api in four requests](docs/walkthrough-vuln-api.md) · [brute-forcing the SSH lab](docs/walkthrough-ssh-brute.md).
 
 ## Architecture
 
