@@ -110,7 +110,7 @@ def get_user(user_id):
 def search():
     q = request.args.get("q", "")
     # INTENTIONAL (SQL injection): user input concatenated into SQL.
-    #   Try:  q=anything' OR '1'='1
+    #   Try:  q=x' OR 1=1--   (the trailing %' breaks a bare ' OR '1'='1)
     with _conn() as c:
         rows = c.execute(
             f"SELECT id, username, is_admin FROM users WHERE username LIKE '%{q}%'"
