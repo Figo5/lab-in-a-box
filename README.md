@@ -44,7 +44,7 @@ private bridge documented below. The
 cost: it is synthetic code rather than a real-world app — see `vuln-api/app.py`
 for its documented vulnerabilities.
 
-**Walkthroughs:** [owning vuln-api in four requests](docs/walkthrough-vuln-api.md) · [brute-forcing the SSH lab](docs/walkthrough-ssh-brute.md).
+**Walkthroughs:** [vuln-api in four requests](docs/walkthrough-vuln-api.md) · [DVWA SQL injection](docs/walkthrough-dvwa-sqli.md) · [Juice Shop login bypass](docs/walkthrough-juice-shop-login.md) · [SSH brute force](docs/walkthrough-ssh-brute.md).
 
 ## Architecture
 
